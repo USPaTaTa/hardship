@@ -1,80 +1,107 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-// Battleship game contract
-contract BattleshipGame {
-    // Players
-    address public player1;
-    address public player2;
-    // Current player
-    address public currentPlayer;
-    
-    // Player boards
-    mapping(address => mapping(uint => mapping(uint => bool))) public playerBoards;
-    // Ship placements
-    mapping(address => uint[2][]) public shipsPlacement;
-    // Ready status
-    mapping(address => bool) public readyToPlay;
-    
-  
-    
-    // Events
-    event GameStarted(address player1, address player2);
-    event PlayerReady(address player);
-    event GameEnded(address winner);
+contract BattleShip {
+// VARIABLES
+address public host;
+address public guest;
+address public winner;
+address public currentPlayer;
+bool public gameStarted;
+bool public gameOver;
+mapping(address => Coordinate[]) public historyAttacks;
 
-    // Constructor
-    constructor(address _player1, address _player2) {
-        player1 = _player1;
-        player2 = _player2;
-        currentPlayer = _player2;
-        emit GameStarted(_player1, _player2);
+    // ENUM
+    enum coordinateStatus {
+        Miss,
+        Hit,
+        Sunk
     }
-    
-    // Only players modifier
+    // STRUCT
+    struct Coordinate {
+        uint8 x;
+        uint8 y;
+        coordinateStatus status;
+    }
+
+    // EVENT
+    event GameStarted(address host, address guest);
+    event GameEnded(address winner);
+    event Attack(address indexed attacker, uint8 x, uint8 y, coordinateStatus result);
+
+    constructor(address _guest) {
+        host = msg.sender;
+        guest = _guest;
+        gameStarted = false;
+        gameOver = false;
+    }
+
+    // MODIFIERS
     modifier onlyPlayers() {
-        require(msg.sender == player1 || msg.sender == player2, "Not a player.");
+        require(msg.sender == host || msg.sender == guest, "You are not a player in this game.");
         _;
     }
-    
-    // Only current player modifier
-    modifier onlyCurrentPlayer() {
+
+    modifier gameNotStarted() {
+        require(!gameStarted, "The game has already started.");
+        _;
+    }
+
+    modifier gameStartedOnly() {
+        require(gameStarted, "The game has not started yet.");
+        _;
+    }
+
+    modifier gameNotOver() {
+        require(!gameOver, "The game is over.");
+        _;
+    }
+
+    modifier validCoordinate(uint8 _x, uint8 _y) {
+        require(_x >= 0 && _x < 10, "Invalid x coordinate.");
+        require(_y >= 0 && _y < 10, "Invalid y coordinate.");
+        _;
+    }
+
+    modifier isCurrentPlayer() {
         require(msg.sender == currentPlayer, "Not your turn.");
         _;
     }
-    
-    // Place ships function
-    function placeShips(uint[2][][] memory _shipCoordinates) public onlyPlayers {
-        require(_shipCoordinates.length == 5, "Invalid ship count");
 
-        // All the ship size
-        uint[] memory shipSizes = new uint[](5);
-        shipSizes[0] = 5;
-        shipSizes[1] = 4;
-        shipSizes[2] = 3;
-        shipSizes[3] = 3;
-        shipSizes[4] = 2;
+    // FUNCTIONS
+    function startGame() external onlyPlayers gameNotStarted {
+        require(msg.sender == host, "Only host can start the game.");
+        gameStarted = true;
+        currentPlayer = guest;
+        emit GameStarted(host, guest);
+    }
 
-        // Loop over each ship
-        for (uint i = 0; i < _shipCoordinates.length; i++) {
-            // Check that the ship size matches the expected size
-            require(_shipCoordinates[i].length == shipSizes[i], "Invalid ship size");
-            // Loop over each coordinate pair for the current ship
-            for (uint j = 0; j < _shipCoordinates[i].length; j++) {
-                // Add the coordinate pair to the player's ship placements
-                shipsPlacement[msg.sender].push(_shipCoordinates[i][j]);
-                // Extract the x and y coordinates
-                uint x = _shipCoordinates[i][j][0];
-                uint y = _shipCoordinates[i][j][1];
-                // Mark the coordinate on the player's board as occupied by a ship
-                playerBoards[msg.sender][x][y] = true;
+    function attack(uint8 _x, uint8 _y, coordinateStatus _status) external onlyPlayers gameStartedOnly gameNotOver isCurrentPlayer validCoordinate(_x, _y) {
+        for (uint i = 0; i < historyAttacks[msg.sender].length; i++) {
+            uint8 x = historyAttacks[msg.sender][i].x;
+            uint8 y = historyAttacks[msg.sender][i].y;
+            if (x == _x && y == _y) {
+                revert("You have already attacked this coordinate.");
             }
         }
-        readyToPlay[msg.sender] = true;
-        emit PlayerReady(msg.sender);
+        historyAttacks[msg.sender].push(Coordinate(_x, _y, _status));
+        emit Attack(msg.sender, _x, _y, _status);
+        checkGameOver();
+        currentPlayer = currentPlayer == host ? guest : host;
     }
-    // Calculate ship size function
-    function calculateShipSize(uint[2] memory _shipCoordinates) private pure returns (uint) {
-        return 1 + (_shipCoordinates[0] > _shipCoordinates[1] ? _shipCoordinates[0] - _shipCoordinates[1] : _shipCoordinates[1] - _shipCoordinates[0]);
+
+    function checkGameOver() internal {
+        uint8 sunkShips = 0;
+        for (uint i = 0; i < historyAttacks[msg.sender].length; i++) {
+            if (historyAttacks[msg.sender][i].status == coordinateStatus.Sunk) {
+                sunkShips++;
+            }
+        }
+        if (sunkShips == 5) {
+            gameOver = true;
+            winner = msg.sender;
+            emit GameEnded(msg.sender);
+        }
     }
+
 }
