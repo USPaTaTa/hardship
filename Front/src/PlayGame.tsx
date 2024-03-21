@@ -21,8 +21,11 @@ export default function PlayGame({
 }: {
   myBoats: Map<BoatType, Boat>;
 }) {
-  const { checkCurrentPlayer } = useGame();
+  const { checkCurrentPlayer, gameStarted, checkPlayer2, checkPlayer1 } =
+    useGame();
   const [acurrentPlayer, setaCurrentPlayer] = useState<string>("");
+  const [host, setHost] = useState<string>("");
+  const [guest, setGuest] = useState<string>("");
 
   const fetchCurrentPlayer = async () => {
     const player = await checkCurrentPlayer();
@@ -31,7 +34,13 @@ export default function PlayGame({
 
   useEffect(() => {
     fetchCurrentPlayer();
-  }, []);
+    checkPlayer2().then((result) => {
+      setGuest(result || "");
+    });
+    checkPlayer1().then((result) => {
+      setHost(result || "");
+    });
+  }, [gameStarted]);
 
   const [gameOver, setGameOver] = useState(false);
   const [nbSunks, setNbSunks] = useState(0);
@@ -105,76 +114,83 @@ export default function PlayGame({
       </div>
       <div>
         <span>
-          {players.find((p) => p !== myName)} : {opponentSpeech}
+          {/* {players.find((p) => p !== myName)} : {opponentSpeech} */}
+          {host} : {opponentSpeech}
         </span>
       </div>
-      <Game
-        myGrid={myGrid}
-        otherGrid={theirKnownGrid}
-        onClick={(coord) => {
-          if (gameOver || !isMyTurn()) {
-            return;
-          }
-          setAttackCell(coord);
-          attack(coord);
-          setOpponentSpeech("thinking...");
-        }}
-        focus={attackCell}
-      />
-      {!gameOver && !isMyTurn() && showAnswerButtons && (
-        <div>
-          <button
-            onClick={() => {
-              answer({
-                coord: oppAttackCell!,
-                damage: Damage.NONE,
-                sunk: false,
-              });
-              myGrid[oppAttackCell!.row][oppAttackCell!.column].damage =
-                Damage.NONE;
-              setMyGrid([...myGrid]);
-              togglePlayer();
-              setOpponentSpeech("waiting...");
-              setShowAnswerButtons(false);
-            }}
-          >
-            Manqué
-          </button>
-          <button
-            onClick={() => {
-              answer({
-                coord: oppAttackCell!,
-                damage: Damage.HIT,
-                sunk: false,
-              });
-              myGrid[oppAttackCell!.row][oppAttackCell!.column].damage =
-                Damage.HIT;
-              setMyGrid([...myGrid]);
-              setShowAnswerButtons(false);
-            }}
-          >
-            Touché
-          </button>
-          <button
-            onClick={() => {
-              answer({
-                coord: oppAttackCell!,
-                damage: Damage.HIT,
-                sunk: true,
-              });
-              const { boat } = getBoatAtCoord(myBoats, oppAttackCell!)!;
-              boat.sunk = true;
-              setMyGrid([...myGrid]);
-              setShowAnswerButtons(false);
-              if (Object.values(myBoats).every((boat) => boat.sunk)) {
-                setGameOver(true);
-                setOpponentSpeech("Game over... you lose!");
+      {gameStarted ? (
+        <>
+          <Game
+            myGrid={myGrid}
+            otherGrid={theirKnownGrid}
+            onClick={(coord) => {
+              if (gameOver || !isMyTurn()) {
+                return;
               }
+              setAttackCell(coord);
+              attack(coord);
+              setOpponentSpeech("thinking...");
             }}
-          >
-            Coulé
-          </button>
-        </div>
+            focus={attackCell}
+          />
+          {!gameOver && !isMyTurn() && showAnswerButtons && (
+            <div>
+              <button
+                onClick={() => {
+                  answer({
+                    coord: oppAttackCell!,
+                    damage: Damage.NONE,
+                    sunk: false,
+                  });
+                  myGrid[oppAttackCell!.row][oppAttackCell!.column].damage =
+                    Damage.NONE;
+                  setMyGrid([...myGrid]);
+                  togglePlayer();
+                  setOpponentSpeech("waiting...");
+                  setShowAnswerButtons(false);
+                }}
+              >
+                Manqué
+              </button>
+              <button
+                onClick={() => {
+                  answer({
+                    coord: oppAttackCell!,
+                    damage: Damage.HIT,
+                    sunk: false,
+                  });
+                  myGrid[oppAttackCell!.row][oppAttackCell!.column].damage =
+                    Damage.HIT;
+                  setMyGrid([...myGrid]);
+                  setShowAnswerButtons(false);
+                }}
+              >
+                Touché
+              </button>
+              <button
+                onClick={() => {
+                  answer({
+                    coord: oppAttackCell!,
+                    damage: Damage.HIT,
+                    sunk: true,
+                  });
+                  const { boat } = getBoatAtCoord(myBoats, oppAttackCell!)!;
+                  boat.sunk = true;
+                  setMyGrid([...myGrid]);
+                  setShowAnswerButtons(false);
+                  if (Object.values(myBoats).every((boat) => boat.sunk)) {
+                    setGameOver(true);
+                    setOpponentSpeech("Game over... you lose!");
+                  }
+                }}
+              >
+                Coulé
+              </button>
+            </div>
+          )}
+        </>
+      ) : (
+        "Waiting for game to start..."
       )}
     </>
   );

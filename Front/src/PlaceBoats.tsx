@@ -21,7 +21,7 @@ export default function PlaceBoats({
     new Map()
   );
 
-  const { startGame } = useGame();
+  const { startGame, checkIfGameStarted } = useGame();
 
   const [grid, setGrid] = useState(createEmptyGrid(Presence.WATER));
 
@@ -115,6 +115,7 @@ export default function PlaceBoats({
         onClick={() => {
           onDone(placedBoats);
           startGame();
+          checkIfGameStarted();
         }}
       >
         Done!

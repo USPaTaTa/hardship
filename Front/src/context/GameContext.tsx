@@ -2,6 +2,7 @@ import React, { createContext, useState, useContext, useEffect } from "react";
 import { ethers } from "ethers";
 import { Boat, BoatType } from "../model/Battleship";
 import BattleShipAbi from "../BattleShip.json"; // Make sure to import your ABI
+import { set } from "date-fns";
 
 interface GameState {
   myBoats: Map<BoatType, Boat>;
@@ -11,6 +12,9 @@ interface GameState {
   startGame: () => Promise<void>;
   checkIfGameStarted: () => Promise<boolean>;
   checkCurrentPlayer: () => Promise<string>;
+  gameStarted: boolean;
+  checkPlayer1: () => Promise<string>;
+  checkPlayer2: () => Promise<string>;
 }
 
 const GameContext = createContext<GameState | undefined>(undefined);
@@ -21,6 +25,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
   const [myBoats, setMyBoats] = useState<Map<BoatType, Boat>>(new Map());
   const [provider, setProvider] = useState<ethers.JsonRpcProvider | null>(null);
   const [contract, setContract] = useState<ethers.Contract | null>(null); // Add this line
+  const [gameStarted, setGameStarted] = useState(false);
 
   // Connect to Ethereum provider when component mounts
   useEffect(() => {
@@ -33,6 +38,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // Deploy the contract after the provider is ready
       const signer = await provider.getSigner();
+      console.log("Signer address:", await signer.getAddress());
       const contract = await deployNewBattleShip(signer);
       setContract(contract);
     };
@@ -48,7 +54,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
     );
 
     const deployTransaction = await factory.getDeployTransaction(
-      "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+      "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
     );
     const deployedContract = await signer.sendTransaction(deployTransaction);
     const receipt = await deployedContract.wait();
@@ -78,6 +84,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
         // Fetch and log gameStarted after starting the game
         const gameStartedAfter = await contract.gameStarted();
         console.log("Game started after:", gameStartedAfter);
+
+        // After starting the game, fetch the current player
       } catch (error) {
         console.error("Failed to start game:", error);
       }
@@ -90,12 +98,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
     if (contract) {
       try {
         const gameStarted = await contract.gameStarted();
+        setGameStarted(gameStarted);
         return gameStarted;
       } catch (error) {
         console.error("Failed to check if game started:", error);
       }
     } else {
       console.error("Contract not loaded");
+      return false;
     }
   };
 
@@ -112,6 +122,31 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const checkPlayer1 = async () => {
+    if (contract) {
+      try {
+        const player1 = await contract.host();
+        return player1;
+      } catch (error) {
+        console.error("Failed to check player1:", error);
+      }
+    } else {
+      console.error("Contract not loaded");
+    }
+  };
+  const checkPlayer2 = async () => {
+    if (contract) {
+      try {
+        const player2 = await contract.guest();
+        return player2;
+      } catch (error) {
+        console.error("Failed to check player2:", error);
+      }
+    } else {
+      console.error("Contract not loaded");
+    }
+  };
+
   return (
     <GameContext.Provider
       value={{
@@ -122,6 +157,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
         startGame,
         checkIfGameStarted,
         checkCurrentPlayer,
+        gameStarted,
+        checkPlayer1,
+        checkPlayer2,
       }}
     >
       {children}
