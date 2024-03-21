@@ -3,6 +3,7 @@ import { useBot } from "./BotOpponent";
 import "./PlayGame.css";
 import { Game } from "./components/Game";
 import { useGame } from "./context/GameContext";
+
 import {
   Answer,
   Boat,
@@ -20,17 +21,17 @@ export default function PlayGame({
 }: {
   myBoats: Map<BoatType, Boat>;
 }) {
-  const { checkIfGameStarted } = useGame();
-  const [isGameStarted, setIsGameStarted] = useState<boolean>(false);
-  // check if game is started
-  useEffect(() => {
-    const fetchGameStarted = async () => {
-      const gameStarted = await checkIfGameStarted();
-      setIsGameStarted(gameStarted);
-    };
+  const { checkCurrentPlayer } = useGame();
+  const [acurrentPlayer, setaCurrentPlayer] = useState<string>("");
 
-    fetchGameStarted();
-  }, [checkIfGameStarted]);
+  const fetchCurrentPlayer = async () => {
+    const player = await checkCurrentPlayer();
+    setaCurrentPlayer(player);
+  };
+
+  useEffect(() => {
+    fetchCurrentPlayer();
+  }, []);
 
   const [gameOver, setGameOver] = useState(false);
   const [nbSunks, setNbSunks] = useState(0);
@@ -92,15 +93,15 @@ export default function PlayGame({
     if (answer.damage === Damage.NONE) {
       togglePlayer();
     }
+
+    // fetch current player
+    fetchCurrentPlayer();
   }
 
   return (
     <>
       <div>
-        <span>GameState : {isGameStarted ? "Started" : "Not Started"}</span>
-      </div>
-      <div>
-        <span>Next to play: {players[currentPlayer]}</span>
+        <span>Current player: {acurrentPlayer}</span>
       </div>
       <div>
         <span>

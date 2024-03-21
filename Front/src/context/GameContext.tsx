@@ -2,7 +2,6 @@ import React, { createContext, useState, useContext, useEffect } from "react";
 import { ethers } from "ethers";
 import { Boat, BoatType } from "../model/Battleship";
 import BattleShipAbi from "../BattleShip.json"; // Make sure to import your ABI
-import { set } from "date-fns";
 
 interface GameState {
   myBoats: Map<BoatType, Boat>;
@@ -11,6 +10,7 @@ interface GameState {
   contract: ethers.Contract | null;
   startGame: () => Promise<void>;
   checkIfGameStarted: () => Promise<boolean>;
+  checkCurrentPlayer: () => Promise<string>;
 }
 
 const GameContext = createContext<GameState | undefined>(undefined);
@@ -99,6 +99,19 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const checkCurrentPlayer = async () => {
+    if (contract) {
+      try {
+        const currentPlayer = await contract.currentPlayer();
+        return currentPlayer;
+      } catch (error) {
+        console.error("Failed to check current player:", error);
+      }
+    } else {
+      console.error("Contract not loaded");
+    }
+  };
+
   return (
     <GameContext.Provider
       value={{
@@ -108,6 +121,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
         contract,
         startGame,
         checkIfGameStarted,
+        checkCurrentPlayer,
       }}
     >
       {children}
