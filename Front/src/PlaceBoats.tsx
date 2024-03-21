@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import "./PlaceBoats.css";
 import { Grid } from "./components/Grid";
+import { useGame } from "./context/GameContext";
 import {
   Boat,
   BoatType,
   Coord,
   Direction,
   Presence,
-  createEmptyGrid
+  createEmptyGrid,
 } from "./model/Battleship";
 import { fitsIn, getBoatAtCoord, placeBoat } from "./utils/grid";
 
@@ -16,16 +17,18 @@ export default function PlaceBoats({
 }: {
   onDone: (boats: Map<BoatType, Boat>) => void;
 }) {
-  const [placedBoats,setPlacedBoats] = useState<Map<BoatType, Boat>>(new Map());
+  const [placedBoats, setPlacedBoats] = useState<Map<BoatType, Boat>>(
+    new Map()
+  );
+
+  const { startGame } = useGame();
 
   const [grid, setGrid] = useState(createEmptyGrid(Presence.WATER));
-
-  
 
   useEffect(() => {
     const grid = createEmptyGrid(Presence.WATER);
     for (const [type, boat] of placedBoats.entries()) {
-      placeBoat(grid, type,boat);
+      placeBoat(grid, type, boat);
     }
     setGrid(grid);
   }, [placedBoats]);
@@ -37,18 +40,19 @@ export default function PlaceBoats({
 
   const actions = ["PLACE", "REMOVE"];
   const [action, setAction] = useState<string>(actions[0]);
-  const [currentBoatType, setCurrentBoatType] = useState<BoatType | null>(BoatType.CARRIER);
+  const [currentBoatType, setCurrentBoatType] = useState<BoatType | null>(
+    BoatType.CARRIER
+  );
 
-  
   function onClick(coord: Coord) {
     if (
       action === "REMOVE" &&
       grid[coord.row][coord.column].presence === Presence.BOAT
     ) {
-      const {type} = getBoatAtCoord(placedBoats,coord)!;
+      const { type } = getBoatAtCoord(placedBoats, coord)!;
       placedBoats.delete(type);
       setPlacedBoats(new Map(placedBoats));
-      const remainings = [...remainingBoats, type]
+      const remainings = [...remainingBoats, type];
       setRemainingBoats(remainings);
       setCurrentBoatType(remainings[0] as BoatType);
 
@@ -59,7 +63,6 @@ export default function PlaceBoats({
       currentBoatType &&
       grid[coord.row][coord.column].presence === Presence.WATER
     ) {
-      
       const boat: Boat = {
         origin: coord,
         direction: direction,
@@ -67,12 +70,15 @@ export default function PlaceBoats({
         sunk: false,
       };
       if (fitsIn(currentBoatType!, boat, grid)) {
-        
         placedBoats.set(currentBoatType!, boat);
         setPlacedBoats(new Map(placedBoats));
-        const remainings = remainingBoats.filter((boat) => boat !== currentBoatType)
+        const remainings = remainingBoats.filter(
+          (boat) => boat !== currentBoatType
+        );
         setRemainingBoats(remainings);
-        setCurrentBoatType(remainings.length>0?remainings[0] as BoatType:null);
+        setCurrentBoatType(
+          remainings.length > 0 ? (remainings[0] as BoatType) : null
+        );
       }
     }
   }
@@ -94,14 +100,25 @@ export default function PlaceBoats({
         })}
       </select>
       <span>Direction: </span>
-      <select onChange={(e) => {
-        setDirection(e.target.value as Direction)}}>
+      <select
+        onChange={(e) => {
+          setDirection(e.target.value as Direction);
+        }}
+      >
         {Object.keys(Direction).map((direction) => {
           return <option key={direction}>{direction}</option>;
         })}
       </select>
       <Grid grid={grid} onClick={onClick} focus={null} />
-      <button  disabled={remainingBoats.length > 0} onClick={() => onDone(placedBoats)}>Done!</button>
+      <button
+        disabled={remainingBoats.length > 0}
+        onClick={() => {
+          onDone(placedBoats);
+          startGame();
+        }}
+      >
+        Done!
+      </button>
     </div>
   );
 }

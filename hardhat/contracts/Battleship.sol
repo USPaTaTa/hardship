@@ -104,4 +104,8 @@ mapping(address => Coordinate[]) public historyAttacks;
         }
     }
 
+    function getAllAttacks(address _player) external view onlyPlayers returns (Coordinate[] memory) {
+        return historyAttacks[_player];
+    }
+
 }

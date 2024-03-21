@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useBot } from "./BotOpponent";
 import "./PlayGame.css";
 import { Game } from "./components/Game";
+import { useGame } from "./context/GameContext";
 import {
   Answer,
   Boat,
@@ -19,6 +20,17 @@ export default function PlayGame({
 }: {
   myBoats: Map<BoatType, Boat>;
 }) {
+  const { checkIfGameStarted } = useGame();
+  const [isGameStarted, setIsGameStarted] = useState<boolean>(false);
+  // check if game is started
+  useEffect(() => {
+    const fetchGameStarted = async () => {
+      const gameStarted = await checkIfGameStarted();
+      setIsGameStarted(gameStarted);
+    };
+
+    fetchGameStarted();
+  }, [checkIfGameStarted]);
 
   const [gameOver, setGameOver] = useState(false);
   const [nbSunks, setNbSunks] = useState(0);
@@ -39,13 +51,11 @@ export default function PlayGame({
     setMyGrid(grid);
   }, []);
 
-  const [theirKnownGrid, setTheirKnownGrid] = useState(
-    createEmptyGrid(null)
-  );
+  const [theirKnownGrid, setTheirKnownGrid] = useState(createEmptyGrid(null));
   const [attackCell, setAttackCell] = useState<Coord | null>(null);
   const [oppAttackCell, setOppAttackCell] = useState<Coord | null>(null);
-  
-    const { answer, attack } = useBot(onAttack, onAnswer);
+
+  const { answer, attack } = useBot(onAttack, onAnswer);
 
   function isMyTurn() {
     return players[currentPlayer] === myName;
@@ -71,8 +81,8 @@ export default function PlayGame({
     theirKnownGrid[answer.coord.row][answer.coord.column].presence =
       answer.damage == Damage.HIT ? Presence.BOAT : Presence.WATER;
     theirKnownGrid[answer.coord.row][answer.coord.column].damage = Damage.HIT;
-    if(answer.sunk){
-      setNbSunks(nbSunks+1);
+    if (answer.sunk) {
+      setNbSunks(nbSunks + 1);
       if (nbSunks === 4) {
         setGameOver(true);
         setOpponentSpeech("Game over... you win!");
@@ -86,6 +96,9 @@ export default function PlayGame({
 
   return (
     <>
+      <div>
+        <span>GameState : {isGameStarted ? "Started" : "Not Started"}</span>
+      </div>
       <div>
         <span>Next to play: {players[currentPlayer]}</span>
       </div>
@@ -116,7 +129,8 @@ export default function PlayGame({
                 damage: Damage.NONE,
                 sunk: false,
               });
-              myGrid[oppAttackCell!.row][oppAttackCell!.column].damage = Damage.NONE;
+              myGrid[oppAttackCell!.row][oppAttackCell!.column].damage =
+                Damage.NONE;
               setMyGrid([...myGrid]);
               togglePlayer();
               setOpponentSpeech("waiting...");
@@ -132,7 +146,8 @@ export default function PlayGame({
                 damage: Damage.HIT,
                 sunk: false,
               });
-              myGrid[oppAttackCell!.row][oppAttackCell!.column].damage = Damage.HIT;
+              myGrid[oppAttackCell!.row][oppAttackCell!.column].damage =
+                Damage.HIT;
               setMyGrid([...myGrid]);
               setShowAnswerButtons(false);
             }}
@@ -146,11 +161,11 @@ export default function PlayGame({
                 damage: Damage.HIT,
                 sunk: true,
               });
-              const {boat} = getBoatAtCoord(myBoats,oppAttackCell!)!;
-              boat.sunk = true
+              const { boat } = getBoatAtCoord(myBoats, oppAttackCell!)!;
+              boat.sunk = true;
               setMyGrid([...myGrid]);
               setShowAnswerButtons(false);
-              if(Object.values(myBoats).every(boat => boat.sunk)){
+              if (Object.values(myBoats).every((boat) => boat.sunk)) {
                 setGameOver(true);
                 setOpponentSpeech("Game over... you lose!");
               }
