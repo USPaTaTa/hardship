@@ -1,8 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
 import { ethers } from "ethers";
 import { Boat, BoatType } from "../model/Battleship";
-import BattleShipAbi from "../BattleShip.json"; // Make sure to import your ABI
-import { set } from "date-fns";
+import BattleShipAbi from "../BattleShip.json";
 
 interface GameState {
   myBoats: Map<BoatType, Boat>;
@@ -24,20 +23,32 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [myBoats, setMyBoats] = useState<Map<BoatType, Boat>>(new Map());
   const [provider, setProvider] = useState<ethers.JsonRpcProvider | null>(null);
-  const [contract, setContract] = useState<ethers.Contract | null>(null); // Add this line
+  const [contract, setContract] = useState<ethers.Contract | null>(null);
   const [gameStarted, setGameStarted] = useState(false);
 
   // Connect to Ethereum provider when component mounts
   useEffect(() => {
     const initializeProvider = async () => {
-      const provider = new ethers.JsonRpcProvider("http://localhost:8545");
-      await provider.ready;
+      let signer = null;
+
+      let provider;
+      if ((window as any).ethereum == null) {
+        console.log("no provider! quit...");
+        return;
+      }
+      console.log("provider", (window as any).ethereum);
+
+      provider = new ethers.BrowserProvider((window as any).ethereum);
+
+      console.log("signer", signer);
       const network = await provider.getNetwork();
-      setProvider(provider);
+
+      console.log("Provider initialized:", provider);
       console.log(network);
 
       // Deploy the contract after the provider is ready
-      const signer = await provider.getSigner();
+      signer = await provider.getSigner();
+
       console.log("Signer address:", await signer.getAddress());
       const contract = await deployNewBattleShip(signer);
       setContract(contract);
