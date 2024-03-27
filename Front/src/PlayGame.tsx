@@ -21,8 +21,13 @@ export default function PlayGame({
 }: {
   myBoats: Map<BoatType, Boat>;
 }) {
-  const { checkCurrentPlayer, gameStarted, checkPlayer2, checkPlayer1 } =
-    useGame();
+  const {
+    checkCurrentPlayer,
+    gameStarted,
+    checkPlayer2,
+    checkPlayer1,
+    surrender,
+  } = useGame();
   const [acurrentPlayer, setaCurrentPlayer] = useState<string>("");
   const [host, setHost] = useState<string>("");
   const [guest, setGuest] = useState<string>("");
@@ -120,6 +125,9 @@ export default function PlayGame({
       </div>
       {gameStarted ? (
         <>
+          <div>
+            <button onClick={() => surrender()}>Surrender</button>
+          </div>
           <Game
             myGrid={myGrid}
             otherGrid={theirKnownGrid}

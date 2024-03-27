@@ -14,6 +14,7 @@ interface GameState {
   gameStarted: boolean;
   checkPlayer1: () => Promise<string>;
   checkPlayer2: () => Promise<string>;
+  surrender: () => Promise<void>;
 }
 
 const GameContext = createContext<GameState | undefined>(undefined);
@@ -82,6 +83,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
     return deployedInstance;
   }
 
+  // Start the game
   const startGame = async () => {
     if (contract) {
       try {
@@ -105,6 +107,20 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const surrender = async () => {
+    if (contract) {
+      try {
+        const tx = await contract.endGameManually();
+        await tx.wait(); // Wait for transaction to be mined
+      } catch (error) {
+        console.error("Failed to surrender:", error);
+      }
+    } else {
+      console.error("Contract not loaded");
+    }
+  };
+
+  // check events --------------------------------------------------------------
   useEffect(() => {
     if (contract) {
       // check event GameStarted
@@ -123,6 +139,27 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [contract]);
 
+  useEffect(() => {
+    if (contract) {
+      // check event Attack
+      contract.on("Attack", async (attacker, x, y, hit) => {
+        console.log(
+          "Attack event:",
+          attacker,
+          "attack on x:",
+          x,
+          " y:",
+          y,
+          " result:",
+          hit
+        );
+      });
+    }
+  }, [contract]);
+
+  //--------------------------------------------------------------------------------
+
+  // check if game started
   const checkIfGameStarted = async () => {
     if (contract) {
       try {
@@ -137,7 +174,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
       return false;
     }
   };
-
+  // check current player
   const checkCurrentPlayer = async () => {
     if (contract) {
       try {
@@ -150,7 +187,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
       console.error("Contract not loaded");
     }
   };
-
+  // check player1 and player2
   const checkPlayer1 = async () => {
     if (contract) {
       try {
@@ -189,6 +226,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
         gameStarted,
         checkPlayer1,
         checkPlayer2,
+        surrender,
       }}
     >
       {children}

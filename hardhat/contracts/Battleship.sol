@@ -108,4 +108,15 @@ mapping(address => Coordinate[]) public historyAttacks;
         return historyAttacks[_player];
     }
 
+    function endGameManually() external onlyPlayers gameStartedOnly gameNotOver {
+    if (currentPlayer == host) {
+        winner = guest;
+    }else{
+        winner = host;
+    }
+    gameOver = true;
+    emit GameEnded(winner);
+
+    }
+
 }
