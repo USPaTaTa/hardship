@@ -105,6 +105,24 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  useEffect(() => {
+    if (contract) {
+      // check event GameStarted
+      contract.on("GameStarted", async (player1, player2) => {
+        console.log("Game started event:", player1, player2);
+      });
+    }
+  }, [contract]);
+
+  useEffect(() => {
+    if (contract) {
+      // check event GameEnded
+      contract.on("GameEnded", async (winner) => {
+        console.log("Game finished, the winner is:", winner);
+      });
+    }
+  }, [contract]);
+
   const checkIfGameStarted = async () => {
     if (contract) {
       try {
