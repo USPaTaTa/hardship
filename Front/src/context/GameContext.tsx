@@ -15,6 +15,9 @@ interface GameState {
   checkPlayer1: () => Promise<string>;
   checkPlayer2: () => Promise<string>;
   surrender: () => Promise<void>;
+  checkIfGameEnded: () => Promise<boolean>;
+  checkWinner: () => Promise<string>;
+  attackContract: (x: number, y: number, status: number) => Promise<void>;
 }
 
 const GameContext = createContext<GameState | undefined>(undefined);
@@ -174,6 +177,18 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
       return false;
     }
   };
+  const checkIfGameEnded = async () => {
+    if (contract) {
+      try {
+        const gameEnded = await contract.gameOver();
+        return gameEnded;
+      } catch (error) {
+        console.error("Failed to check if game ended:", error);
+      }
+    } else {
+      console.error("Contract not loaded");
+    }
+  };
   // check current player
   const checkCurrentPlayer = async () => {
     if (contract) {
@@ -213,6 +228,32 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const checkWinner = async () => {
+    if (contract) {
+      try {
+        const winner = await contract.winner();
+        return winner;
+      } catch (error) {
+        console.error("Failed to check winner:", error);
+      }
+    } else {
+      console.error("Contract not loaded");
+    }
+  };
+
+  const attackContract = async (x: number, y: number, status: number) => {
+    if (contract) {
+      try {
+        const tx = await contract.attack(x, y, status);
+        await tx.wait(); // Wait for transaction to be mined
+      } catch (error) {
+        console.error("Failed to attack:", error);
+      }
+    } else {
+      console.error("Contract not loaded");
+    }
+  };
+
   return (
     <GameContext.Provider
       value={{
@@ -227,6 +268,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
         checkPlayer1,
         checkPlayer2,
         surrender,
+        checkIfGameEnded,
+        checkWinner,
+        attackContract,
       }}
     >
       {children}

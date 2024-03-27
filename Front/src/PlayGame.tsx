@@ -27,10 +27,12 @@ export default function PlayGame({
     checkPlayer2,
     checkPlayer1,
     surrender,
+    attackContract,
   } = useGame();
   const [acurrentPlayer, setaCurrentPlayer] = useState<string>("");
   const [host, setHost] = useState<string>("");
   const [guest, setGuest] = useState<string>("");
+  const [statusAttack, setStatusAttack] = useState<number>(0);
 
   const fetchCurrentPlayer = async () => {
     const player = await checkCurrentPlayer();
@@ -108,6 +110,15 @@ export default function PlayGame({
       togglePlayer();
     }
 
+    // determine status based on answer
+    if (answer.damage === Damage.NONE) {
+      setStatusAttack(0);
+    } else if (answer.damage === Damage.HIT && !answer.sunk) {
+      setStatusAttack(1);
+    } else if (answer.sunk) {
+      setStatusAttack(2);
+    }
+
     // fetch current player
     fetchCurrentPlayer();
   }
@@ -120,7 +131,7 @@ export default function PlayGame({
       <div>
         <span>
           {/* {players.find((p) => p !== myName)} : {opponentSpeech} */}
-          {host} : {opponentSpeech}
+          {String(currentPlayer) === host ? guest : host} : {opponentSpeech}
         </span>
       </div>
       {gameStarted ? (
@@ -131,12 +142,13 @@ export default function PlayGame({
           <Game
             myGrid={myGrid}
             otherGrid={theirKnownGrid}
-            onClick={(coord) => {
+            onClick={async (coord) => {
               if (gameOver || !isMyTurn()) {
                 return;
               }
               setAttackCell(coord);
-              attack(coord);
+              // Call the attack function with coordinates and status
+              await attackContract(coord.row, coord.column, statusAttack);
               setOpponentSpeech("thinking...");
             }}
             focus={attackCell}

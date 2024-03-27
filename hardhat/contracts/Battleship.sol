@@ -72,7 +72,7 @@ mapping(address => Coordinate[]) public historyAttacks;
     function startGame() external onlyPlayers gameNotStarted {
         require(msg.sender == host, "Only host can start the game.");
         gameStarted = true;
-        currentPlayer = guest;
+        currentPlayer = host;
         emit GameStarted(host, guest);
     }
 
