@@ -18,6 +18,8 @@ interface GameState {
   checkIfGameEnded: () => Promise<boolean>;
   checkWinner: () => Promise<string>;
   attackContract: (x: number, y: number, status: number) => Promise<void>;
+  initializeProviderAndDeployContract: () => Promise<void>;
+  checkContractAddress: (contractAddress: string) => Promise<boolean>;
 }
 
 const GameContext = createContext<GameState | undefined>(undefined);
@@ -31,35 +33,31 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
   const [gameStarted, setGameStarted] = useState(false);
 
   // Connect to Ethereum provider when component mounts
-  useEffect(() => {
-    const initializeProvider = async () => {
-      let signer = null;
+  const initializeProviderAndDeployContract = async () => {
+    let signer = null;
 
-      let provider;
-      if ((window as any).ethereum == null) {
-        console.log("no provider! quit...");
-        return;
-      }
-      console.log("provider", (window as any).ethereum);
+    let provider;
+    if ((window as any).ethereum == null) {
+      console.log("no provider! quit...");
+      return;
+    }
+    console.log("provider", (window as any).ethereum);
 
-      provider = new ethers.BrowserProvider((window as any).ethereum);
+    provider = new ethers.BrowserProvider((window as any).ethereum);
 
-      console.log("signer", signer);
-      const network = await provider.getNetwork();
+    console.log("signer", signer);
+    const network = await provider.getNetwork();
 
-      console.log("Provider initialized:", provider);
-      console.log(network);
+    console.log("Provider initialized:", provider);
+    console.log(network);
 
-      // Deploy the contract after the provider is ready
-      signer = await provider.getSigner();
+    // Deploy the contract after the provider is ready
+    signer = await provider.getSigner();
 
-      console.log("Signer address:", await signer.getAddress());
-      const contract = await deployNewBattleShip(signer);
-      setContract(contract);
-    };
-
-    initializeProvider();
-  }, []);
+    console.log("Signer address:", await signer.getAddress());
+    const contract = await deployNewBattleShip(signer);
+    setContract(contract);
+  };
 
   async function deployNewBattleShip(signer: ethers.Signer) {
     const factory = new ethers.ContractFactory(
@@ -85,6 +83,23 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
 
     return deployedInstance;
   }
+
+  const checkContractAddress = async (
+    contractAddress: string
+  ): Promise<boolean> => {
+    try {
+      // ethers.utils.getAddress will throw an error if the address is not valid
+      ethers.getAddress(contractAddress);
+      console.log("Valid contract address:", contractAddress);
+      setContract(
+        new ethers.Contract(contractAddress, BattleShipAbi.abi, provider)
+      );
+      return true;
+    } catch (error) {
+      console.error("Invalid contract address:", error);
+      return false;
+    }
+  };
 
   // Start the game
   const startGame = async () => {
@@ -271,6 +286,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
         checkIfGameEnded,
         checkWinner,
         attackContract,
+        initializeProviderAndDeployContract,
+        checkContractAddress,
       }}
     >
       {children}
