@@ -17,7 +17,7 @@ interface GameState {
   surrender: () => Promise<void>;
   checkIfGameEnded: () => Promise<boolean>;
   checkWinner: () => Promise<string>;
-  attackContract: (x: number, y: number, status: number) => Promise<void>;
+  attackContract: (x: number, y: number) => Promise<void>;
   initializeProviderAndDeployContract: () => Promise<void>;
   checkContractAddress: (contractAddress: string) => Promise<boolean>;
 }
@@ -128,7 +128,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
   const surrender = async () => {
     if (contract) {
       try {
-        const tx = await contract.endGameManually();
+        const tx = await contract.surrender();
         await tx.wait(); // Wait for transaction to be mined
       } catch (error) {
         console.error("Failed to surrender:", error);
@@ -255,12 +255,26 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
       console.error("Contract not loaded");
     }
   };
+  // for battleshipV1 contract
+  // const attackContract = async (x: number, y: number, status: number) => {
+  //   if (contract) {
+  //     try {
+  //       const tx = await contract.attack(x, y, status);
+  //       await tx.wait();
+  //     } catch (error) {
+  //       console.error("Failed to attack:", error);
+  //     }
+  //   } else {
+  //     console.error("Contract not loaded");
+  //   }
+  // };
 
-  const attackContract = async (x: number, y: number, status: number) => {
+  // for battleshipV2 contract
+  const attackContract = async (x: number, y: number) => {
     if (contract) {
       try {
-        const tx = await contract.attack(x, y, status);
-        await tx.wait(); // Wait for transaction to be mined
+        const tx = await contract.attack(x, y);
+        await tx.wait();
       } catch (error) {
         console.error("Failed to attack:", error);
       }

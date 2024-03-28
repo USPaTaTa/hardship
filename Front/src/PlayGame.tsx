@@ -110,14 +110,14 @@ export default function PlayGame({
       togglePlayer();
     }
 
-    // determine status based on answer
-    if (answer.damage === Damage.NONE) {
-      setStatusAttack(0);
-    } else if (answer.damage === Damage.HIT && !answer.sunk) {
-      setStatusAttack(1);
-    } else if (answer.sunk) {
-      setStatusAttack(2);
-    }
+    // // determine status based on answer for the battleshipV1, not needed for the battleshipV2
+    // if (answer.damage === Damage.NONE) {
+    //   setStatusAttack(0);
+    // } else if (answer.damage === Damage.HIT && !answer.sunk) {
+    //   setStatusAttack(1);
+    // } else if (answer.sunk) {
+    //   setStatusAttack(2);
+    // }
 
     // fetch current player
     fetchCurrentPlayer();
@@ -148,7 +148,7 @@ export default function PlayGame({
               }
               setAttackCell(coord);
               // Call the attack function with coordinates and status
-              await attackContract(coord.row, coord.column, statusAttack);
+              await attackContract(coord.row, coord.column);
               setOpponentSpeech("thinking...");
             }}
             focus={attackCell}
